@@ -211,8 +211,10 @@ def L_smooth(flux, N=6):
     vw = mov_con(flux[:,9], N)
     wth = mov_con(flux[:,11], N)
     u_fric = (uw**2+vw**2)**.25
+    k = .4
+    g = 9.806
     L = -u_fric**3*T/(k*g*wth)
-    L[np.abs(L)>=500] = 500*np.sign(L[np.abs(L)>=500])
+    #L[np.abs(L)>=500] = 500*np.sign(L[np.abs(L)>=500])
     stab = np.ones(L.shape)    
     indL = (L>0) & (L<100)
     stab[indL] = 0
@@ -584,6 +586,90 @@ timein = pd.concat([drel_phase2.time0.loc[ind1],drel_phase2.relscan.loc[ind1]],a
 timein.index = dfL_phase2.index
 dfL_phase2[['time0','rel']] = timein
 
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+ax.hist(1/(dfL_phase1[colL].loc[dfL_phase1[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'k', label = '$Phase\:1$')
+ax.hist(1/(dfL_phase2[colL].loc[dfL_phase2[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'r', label = '$Phase\:1$')
+ax.set_xlabel('$1/L\:[1/m]$', fontsize=24)
+ax.set_ylabel('$Frequency$', fontsize=24)
+ax.legend(fontsize=24)
+ax.tick_params(labelsize=24)
+fig.tight_layout()
+
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+ax.hist(1/(dfL_phase1[colL].loc[dfL_phase1[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'k', label = '$Phase\:1$')
+ax.hist(1/(dfL_phase2[colL].loc[dfL_phase2[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'r', label = '$Phase\:2$')
+ax.set_xlabel('$1/L\:[1/m]$', fontsize=24)
+ax.set_ylabel('$Frequency$', fontsize=24)
+ax.text(-.095, 7000,'(a)',fontsize=30,color='k')
+#ax.legend(fontsize=24)
+ax.tick_params(labelsize=24)
+fig.tight_layout()
+
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+colU = '$U_{103}$'
+ax.hist((dfL_phase1[colU].loc[dfL_phase1[colL].abs()>500].values),bins=50, histtype = 'step',lw = 2, color = 'k', label = '$Phase\:1\:103\:[m]$')
+colU = '$U_{241}$'
+ax.hist((dfL_phase2[colU].loc[dfL_phase2[colL].abs()>500].values),bins=50, histtype = 'step',lw = 2, color = 'r', label = '$Phase\:2,\:241\:[m]$')
+ax.set_xlabel('$U\:[m/s]$', fontsize=24)
+ax.set_ylabel('$Frequency$', fontsize=24)
+ax.text(1, 450,'(b)',fontsize=30,color='k')
+#ax.legend(fontsize=24)
+ax.tick_params(labelsize=24)
+fig.tight_layout()
+
+
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+ax.hist(1/(stab_phase1_df[colL].loc[stab_phase1_df[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'k', label = '$Phase\:1$')
+ax.hist(1/(stab_phase2_df[colL].loc[stab_phase2_df[colL].abs()>10].values),bins=50, histtype = 'step',lw = 2, color = 'r', label = '$Phase\:2$')
+ax.set_xlabel('$1/L\:[1/m]$', fontsize=24)
+ax.set_ylabel('$Frequency$', fontsize=24)
+ax.text(-.095, 1625,'(a)',fontsize=30,color='k')
+ax.legend(fontsize=24)
+ax.tick_params(labelsize=24)
+fig.tight_layout()
+
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+colU = '$U_{103}$'
+ax.hist((stab_phase1_df[colU].loc[stab_phase1_df[colL].abs()>500].values),bins=50, histtype = 'step',lw = 2, color = 'k', label = '$103\:[m]$')
+colU = '$U_{241}$'
+ax.hist((stab_phase2_df[colU].loc[stab_phase2_df[colL].abs()>500].values),bins=50, histtype = 'step',lw = 2, color = 'r', label = '$241\:[m]$')
+ax.set_xlabel('$U\:[m/s]$', fontsize=24)
+ax.set_ylabel('$Frequency$', fontsize=24)
+ax.text(1.5, 87,'(b)',fontsize=30,color='k')
+ax.legend(fontsize=24)
+ax.tick_params(labelsize=24)
+fig.tight_layout()
+
+
+import matplotlib.colors as mcolors
+gamma = .3
+
+colU = '$U_{103}$'
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+ax.hist2d(1/dfL_phase1[colL].loc[(dfL_phase1[colL].abs()>10)&(dfL_phase1[colL].abs()>400)].values,
+          dfL_phase1[colU].loc[(dfL_phase1[colL].abs()>10)&(dfL_phase1[colL].abs()>400)].values,
+              bins=100,cmap='jet')
+
+colU = '$U_{103}$'
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+im = ax.hist2d(50/dfL_phase1[colL].loc[dfL_phase1[colL].abs()>10].values, dfL_phase1[colU].loc[dfL_phase1[colL].abs()>10].values,
+              bins=100,cmap='jet')
+fig.colorbar(im[3],ax=ax)
+
+colU = '$U_{103}$'
+colL = '$L_{flux,103}$'
+fig,ax = plt.subplots(figsize=(8,8))
+im = ax.hist2d(200/dfL_phase2[colL].loc[dfL_phase2[colL].abs()>10].values, dfL_phase2[colU].loc[dfL_phase2[colL].abs()>10].values,
+              bins=100,cmap='jet')
+fig.colorbar(im[3],ax=ax)
+
 # In[Plots]
 features1 = dfL_phase1.columns
 dfL_phase1_L = dfL_phase1.copy()
@@ -617,170 +703,197 @@ elem = [np.sum(labels2==l) for l in np.unique(labels2)]
 clust2 = np.unique(labels2)[np.flip(np.argsort(elem))][:2]
 ###############################################################################
 # In[]
+import matplotlib.ticker as tkr
 #rel1_0 = ((dfL_phase1_L.area_frac>.5*dfL_phase1_L.area_frac.max()) & (dfL_phase1_L['label']==clust1[0])) & dfL_phase1_L['rel']>.25
 #rel1_1 = ((dfL_phase1_L.area_frac>.5*dfL_phase1_L.area_frac.max()) & (dfL_phase1_L['label']==clust1[1])) & dfL_phase1_L['rel']>.25
 #
 #rel2_0 = ((dfL_phase2_L.area_frac>.5*dfL_phase2_L.area_frac.max()) & (dfL_phase2_L['label']==clust2[0])) & dfL_phase2_L['rel']>.25
 #rel2_1 = ((dfL_phase2_L.area_frac>.5*dfL_phase2_L.area_frac.max()) & (dfL_phase2_L['label']==clust2[1])) & dfL_phase2_L['rel']>.25
+
 colL = '$L_{flux,103}$'
 rel1_0 = (dfL_phase1_L['rel']>.25) & ((dfL_phase1_L[colL]>=0) & (dfL_phase1_L[colL]<500))
 rel1_1 = (dfL_phase1_L['rel']>.25) & ((dfL_phase1_L[colL]<=0) & (dfL_phase1_L[colL]>-500))
-rel1_2 = (dfL_phase1_L['rel']>.25) & (dfL_phase1_L[colL].abs()>=500)
+rel1_2 = (dfL_phase1_L['rel']>.25) & (dfL_phase1_L[colL].abs()>500) #& (dfL_phase1_L['$U_{241}$'] > 15) #& (dfL_phase1_L['$u_{star,37}$'] < .75) 
 
 rel2_0 = (dfL_phase2_L['rel']>.25) & ((dfL_phase2_L[colL]>=0) & (dfL_phase2_L[colL]<500))
 rel2_1 = (dfL_phase2_L['rel']>.25) & ((dfL_phase2_L[colL]<=0) & (dfL_phase2_L[colL]>-500))
-rel2_2 = (dfL_phase2_L['rel']>.25) & (dfL_phase2_L[colL].abs()>=500)
+rel2_2 = (dfL_phase2_L['rel']>.25) & (dfL_phase2_L[colL].abs()>500) #& (dfL_phase2_L['$u_{star,37}$']<.6) #& (dfL_phase2_L['$U_{241}$']>8) 
 
-xlim = 1800
-ylim = 1200
+n1, n2 = np.sum((dfL_phase1_L['rel']>.25).values), np.sum((dfL_phase2_L['rel']>.25).values)
+
+frac_cases = np.array([[np.sum(rel1_0.values)/n1, np.sum(rel1_1.values)/n1, np.sum(rel1_2.values)/n1],
+                        [np.sum(rel2_0.values)/n2, np.sum(rel2_1.values)/n2, np.sum(rel2_2.values)/n2]])
+
+dfL_phase1[['$L_{u,x}$','$L_{u,y}$','$L_{v,x}$','$L_{v,y}$']] = dfL_phase1[['$L_{u,x}$','$L_{u,y}$','$L_{v,x}$','$L_{v,y}$']] 
+dfL_phase2[['$L_{u,x}$','$L_{u,y}$','$L_{v,x}$','$L_{v,y}$']] = dfL_phase2[['$L_{u,x}$','$L_{u,y}$','$L_{v,x}$','$L_{v,y}$']]
+
+xlim = 5*200*1.5
+ylim = 5*200*1.5
+sns.set(font_scale = 2)
 ######################################################################################
 #Phase 1
-
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_0])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:stable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_0], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(a)',fontsize=30,color='w')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_stable_phase_1.png')
+
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_1])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:unstable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_1], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(c)',fontsize=30,color='w')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_unstable_phase_1.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_2])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:neutral$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_2], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(a)',fontsize=30,color='w')
+g.ax_joint.scatter(Lux1,Luy1,s=500,marker='+')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_neutral_phase_1.png')
+
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_0])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:stable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_0], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_stable_phase_1.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_1])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:unstable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_1], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_unstable_phase_1.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_2])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:1,\:neutral$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_2], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_neutral_phase_1.png')
+
+#####################################################################################
 ######################################################################################
 # Phase 2
-
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_0])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:stable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_0], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(b)',fontsize=30,color='w')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_stable_phase_2.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_1])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:unstable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_1], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(d)',fontsize=30,color='w')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_unstable_phase_2.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_2])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{u,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:neutral$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase2.loc[rel2_2], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_1,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
+g.ax_joint.text(100, 1300,'(b)',fontsize=30,color='w')
+g.ax_joint.scatter(Lux2,Luy2,s=500,marker='+', color='k')
 plt.tight_layout()
-plt.savefig(file_out_figures+'/Lu_x_Lu_y_neutral_phase_2.png')
+plt.savefig(file_out_figures+'/Lu_x_Lu_y_neutral_stab_phase_2.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_0])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:stable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_0], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_stable_phase_2.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_1])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:unstable$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_1], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_unstable_phase_2.png')
 ######################################################################################
-g = sns.JointGrid(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_2])
-g = g.plot_joint(sns.kdeplot, kernel='epa', shade=True, levels=10, gridsize=100,
-             clip = [(0,xlim), (0,ylim)], cmap="Greys")
-plt.xlabel('$L_{u,x}$', fontsize=18)
-plt.ylabel('$L_{v,y}$', fontsize=18)
-plt.xlim(0,xlim)
-plt.ylim(0,ylim)
-g = g.plot_marginals(sns.distplot, kde=True, color="grey")
-g.fig.suptitle('$Phase\:2,\:neutral$',fontsize=16, x= .7)
+g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase2.loc[rel2_2], 
+                        height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
+                        color='k')#,cbar=True, cbar_kws={"format": formatter, "label": '$Density$'})
+g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
+g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_neutral_phase_2.png')
+
+# In[Correlations]!!!!!!!!!!!!!!!!!!!!!
+
+def autocorr_interp_sq(r, eta, tau, N = [], tau_lin = [], eta_lin = []):
+    if (len(eta_lin) == 0) | (len(eta_lin) == 0):
+        if len(N) == 0:
+            N = 2**(int(np.ceil(np.log(np.max([tau.shape[1],eta.shape[0]]))/np.log(2)))+3)
+        tau_lin = np.linspace(np.min(tau.flatten()),np.max(tau.flatten()),N)
+        eta_lin = np.linspace(np.min(eta.flatten()),np.max(eta.flatten()),N)
+        tau_lin, eta_lin = np.meshgrid(tau_lin,eta_lin)
+    ind = ~np.isnan(r.flatten())
+    tri_tau = Delaunay(np.c_[tau.flatten()[ind],eta.flatten()[ind]])   
+    r_int = sp.interpolate.CloughTocher2DInterpolator(tri_tau, r.flatten()[ind])(np.c_[tau_lin.flatten(),eta_lin.flatten()])
+    r_int[np.isnan(r_int)] = 0.0
+    return (tau_lin,eta_lin,np.reshape(r_int,tau_lin.shape))
+
+csv_database_r1 = create_engine('sqlite:///'+file_in_path_db_phase1+'/corr_uv_west_phase1_ind.db')
+csv_database_r2 = create_engine('sqlite:///'+file_in_path_db_phase2+'/corr_uv_west_phase2_ind.db')
+
+drel_phase1 = pd.read_sql_query("""select * from "reliable_scan" """,csv_database_r1)
+dfL_phase1 = pd.read_sql_query("""select * from "L" """,csv_database_r1)
+drel_phase2 = pd.read_sql_query("""select * from "reliable_scan" """,csv_database_r2)
+dfL_phase2 = pd.read_sql_query("""select * from "Lcorrected" """,csv_database_r2)
+
+pd.read_sql_query('select distinct name from "L"', csv_database_r2).values
+
+df_corr_phase2 = pd.read_sql_query("""select * from "corr" where name = '20160806' and scan < 8660 """,csv_database_r2)
+
+fig, ax = plt.subplots()
+fig.set_size_inches(8,8)
+ax.set_aspect('equal')
+ax.use_sticky_edges = False
+ax.margins(0.07)
+
+
+
+for i in range(60,65):
+    s = su[i][0]
+    res = df_corr_phase2[['tau', 'eta', 'r_u', 'r_v', 'scan']].loc[df_corr_phase2.scan==s].values
+    tau, eta, ru, rv, scan = np.split(res,res.shape[1],axis=1)
+    N = 512
+    taui = np.linspace(np.nanmin(tau),np.nanmax(tau),N)
+    etai = np.linspace(np.nanmin(tau),np.nanmax(tau),N)
+    taui, etai = np.meshgrid(taui,etai)
+    taui, etai, rui = autocorr_interp_sq(ru,tau,eta,tau_lin = taui, eta_lin = etai)
+    taui, etai, rvi = autocorr_interp_sq(rv,tau,eta,tau_lin = taui, eta_lin = etai)
+    
+    plt.figure()
+    plt.contourf(V_out[i], 
+    plt.figure()
+    plt.contourf(etai,taui,rui,cmap='jet')
+#    plt.figure()
+#    plt.contourf(etai,taui,rvi,cmap='jet')
+
 
 # In[]
 T_0 = ['T_241m_LMS','T_175m_LSM','T_103m_LMS','T_37m_LMS','T_7m_LMS']
