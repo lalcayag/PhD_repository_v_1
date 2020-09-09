@@ -16,6 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage import measure
 from shapely.geometry import LineString
 from shapely import geometry
+import joblib
 
 class FormatScalarFormatter(matplotlib.ticker.ScalarFormatter):
     def __init__(self, fformat="%1.1f", offset=True, mathText=True):
@@ -476,7 +477,7 @@ csv_database_r2 = create_engine('sqlite:///'+file_in_path_corr2+'/corr_uv_west_p
 drel_phase1 = pd.read_sql_query("""select * from "reliable_scan" """,csv_database_r1)
 dfL_phase1 = pd.read_sql_query("""select * from "L" """,csv_database_r1)
 drel_phase2 = pd.read_sql_query("""select * from "reliable_scan" """,csv_database_r2)
-
+dfL_phase2 = pd.read_sql_query("""select * from "Lcorrected" """,csv_database_r2)
 
 
 L1 = dfL_phase1[['$L_{u,x}$', '$L_{u,y}$']].loc[drel_phase1['name']=='20160421'].loc[drel_phase1['scan0'].isin(np.squeeze(scan1))].mean()

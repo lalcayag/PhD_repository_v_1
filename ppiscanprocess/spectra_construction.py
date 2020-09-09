@@ -29,6 +29,9 @@ from scipy.spatial import Delaunay
 
 import time
 import copy
+
+
+
 # In[Autocorrelation for non-structured grid, brute force for non-interpolated wind field]  
 
 def spatial_autocorr_sq(grid,U,V, mask_int = [], transform = True, transform_r = False, tri_calc = True, tri_del = [], refine=32,frac=.5, gamma = [], e_lim=[]):
@@ -64,8 +67,7 @@ def spatial_autocorr_sq(grid,U,V, mask_int = [], transform = True, transform_r =
     dx = np.diff(grid[0][0,:])[0]
     dy = np.diff(grid[1][:,0])[0]
     if transform:  
-        if tri_calc:
-            
+        if tri_calc:           
             U, V, mask,mask_int, tri_del = field_rot(x, y, U, V, gamma = gamma, grid = grid,
                                             tri_calc = tri_calc)
         else:
@@ -74,16 +76,14 @@ def spatial_autocorr_sq(grid,U,V, mask_int = [], transform = True, transform_r =
         U[mask_int] = sp.interpolate.CloughTocher2DInterpolator(tri_del, U[mask])(np.c_[grid[0].flatten(),grid[1].flatten()][mask_int])
         U[~mask_int] = np.nan
         V[mask_int] = sp.interpolate.CloughTocher2DInterpolator(tri_del, V[mask])(np.c_[grid[0].flatten(),grid[1].flatten()][mask_int])
-        V[~mask_int] = np.nan      
-    
+        V[~mask_int] = np.nan         
         U = np.reshape(U,grid[0].shape)
         V = np.reshape(V,grid[0].shape)
-
 #######################################################################
     print('rotating:', time.process_time()-t0)
     t0 = time.process_time()
     _,_,U = shrink(grid,U)
-    grd_shr_x,grd_shr_y,V = shrink(grid,V)
+    grd_shr_x, grd_shr_y,V = shrink(grid,V)
     grd_shr = (grd_shr_x,grd_shr_y)
     print('shrinking:', time.process_time()-t0)
     t0 = time.process_time()
@@ -119,17 +119,16 @@ def spatial_autocorr_sq(grid,U,V, mask_int = [], transform = True, transform_r =
     val_points = np.array(ru)[:,1]
     ru = np.array(ru)[:,0]
     rv = np.array(rv)[:,0]
-
     r_u = np.zeros(tau.shape)
     r_v = np.zeros(tau.shape)
     valid = np.zeros(tau.shape)
     
     r_u[n_tau>=0] = ru
-    r_u[n_tau<0] = np.flip(r_u[n_tau>0])
+    r_u[n_tau<0] = np.flip(r_u[n_tau>0], axis = 0)
     r_v[n_tau>=0] = rv
-    r_v[n_tau<0] = np.flip(r_v[n_tau>0])
+    r_v[n_tau<0] = np.flip(r_v[n_tau>0], axis = 0)
     valid[n_tau>=0] = val_points
-    valid[n_tau<0] = np.flip(valid[n_tau>0])    
+    valid[n_tau<0] = np.flip(valid[n_tau>0], axis = 0)    
     r_uv = np.reshape(np.array(r_uv),tau.shape)
     valid,indicator,e = area_and_lenght_scale(r_u,valid,tau,eta,dx,dy,e_lim)
 #    print(e.shape,tau[0,:].shape,eta[:,0].shape,r_u.shape)
@@ -177,8 +176,8 @@ def spatial_autocorr_sq(grid,U,V, mask_int = [], transform = True, transform_r =
     _,_,r_u = shrink((tau,eta),r_u)
     _,_,r_v = shrink((tau,eta),r_v)
     tau,eta,r_uv = shrink((tau,eta),r_uv)
-    r_u[tau<0] = np.flip(r_u[tau>0])
-    r_v[tau<0] = np.flip(r_v[tau>0])
+    r_u[tau<0] = np.flip(r_u[tau>0], axis = 0)
+    r_v[tau<0] = np.flip(r_v[tau>0], axis = 0)
    
     print('total_time:', time.process_time()-t_0)
     return(tau,eta,r_u,r_v,r_uv,valid,indicator,e,egrad)
@@ -200,8 +199,7 @@ def shrink(grid,U):
     grid_y = np.reshape(grid[1][ind_patch_grd],(n,m))
     return (grid_x,grid_y,U)    
     
-def autocorr_sq(U,n_tau,n_eta):
-    
+def autocorr_sq(U,n_tau,n_eta):  
     if (n_tau!=0) & (n_eta!=0):
         if (n_tau>0) & (n_eta>0): #ok
             U_del = U[n_eta:,:-n_tau]
@@ -231,8 +229,7 @@ def autocorr_sq(U,n_tau,n_eta):
             U = U[:,:n_tau]           
     if (n_tau==0) & (n_eta==0):
         U_del = U
-    ind = ~(np.isnan(U.flatten()) | np.isnan(U_del.flatten()))
-    
+    ind = ~(np.isnan(U.flatten()) | np.isnan(U_del.flatten()))   
     return (np.sum(U.flatten()[ind]*U_del.flatten()[ind]),np.sum(ind))
 
 def crosscorr_sq(U,V,n_tau,n_eta):
@@ -309,13 +306,13 @@ def autocorr_grid(n,m,refine,frac):
     d_tau_exp = np.diff(n_tau_exp)[-1]
     n_tau_lin = np.arange(n_tau_exp[-1],n_tau_next,d_tau_exp)[1:]
     n_tau = np.r_[n_tau_exp,n_tau_lin]
-    n_tau = np.r_[-np.flip(n_tau),0,n_tau]   
+    n_tau = np.r_[-np.flip(n_tau,axis=0),0,n_tau]   
     n_eta_exp = np.unique(np.round(np.exp((np.linspace(0,np.log(n_eta_next),refine))).astype(int)))
     n_eta_exp = n_eta_exp[:int(frac*len(n_eta_exp))+1]
     d_eta_exp = np.diff(n_eta_exp)[-1]
     n_eta_lin = np.arange(n_eta_exp[-1],n_eta_next,d_eta_exp)[1:]
     n_eta = np.r_[n_eta_exp,n_eta_lin]
-    n_eta = np.r_[-np.flip(n_eta),0,n_eta]     
+    n_eta = np.r_[-np.flip(n_eta,axis=0),0,n_eta]     
     n_tau,n_eta = np.meshgrid(n_tau,n_eta)
     return (n_tau,n_eta)
 
@@ -481,13 +478,15 @@ def spectra_fft(grid,U,V,UV,K=0,inv=False):
         k1,k2,Suu,Svv,Suv - 2D arrays with wavenumber and power spectra
                             for U, V and UV, respectively.               
     """
+    
     grid_0 = grid[0].copy()
-    grid_1 = grid[1].copy()   
+    grid_1 = grid[1].copy()  
     grid_0 = grid_0[:-1,:-1]
     grid_1 = grid_1[:-1,:-1] 
     U = U[:-1,:-1]
     V = V[:-1,:-1]
-    UV = UV[:-1,:-1]    
+    UV = UV[:-1,:-1] 
+
     dx = np.max(np.diff(grid_0.flatten()))
     dy = np.max(np.diff(grid_1.flatten()))  
     n = grid_0.shape[0]
@@ -501,18 +500,45 @@ def spectra_fft(grid,U,V,UV,K=0,inv=False):
     UVaux[:n,:m] = UV
     
     if inv:
-        fftU  = np.fft.fftshift(np.fft.ifft2(Uaux))
-        fftV  = np.fft.fftshift(np.fft.ifft2(Vaux))
-        fftUV = np.fft.fftshift(np.fft.ifft2(UVaux))
-        k1 = np.fft.fftshift((np.fft.fftfreq(n*2**K, d=dx)))
-        k2 = np.fft.fftshift((np.fft.fftfreq(m*2**K, d=dy)))
+        dx = (np.pi/(np.max(-grid_0)))*(1-2/n)
+        dy = (np.pi/(np.max(-grid_1)))*(1-2/m)
+        print(dx, dy)
+        fftU  = np.fft.fftshift(np.fft.ifft2(Uaux))/(dx*dy/(2*np.pi)**2)
+        fftV  = np.fft.fftshift(np.fft.ifft2(Vaux))/(dx*dy/(2*np.pi)**2)
+        fftUV = np.fft.fftshift(np.fft.ifft2(UVaux))/(dx*dy/(2*np.pi)**2)
+        k1 = np.arange(-dx*(n-1)/2,dx*(n)/2,dx)
+        k2 = np.arange(-dy*(n-1)/2,dy*(n)/2,dy) 
+        #phase shift
+        exp = np.meshgrid(np.arange(0, len(k1)), np.arange(0, len(k2))) 
+        shift = -(-1)**(exp[0])
+        fftU = fftU*shift
+        fftV = fftV*shift
+        fftUV = fftV*shift
+        shift = -(-1)**(exp[1])
+        fftU = fftU*shift
+        fftV = fftV*shift
+        fftUV = fftV*shift
+        
     else:
         fftU  = np.fft.fftshift(np.fft.fft2(Uaux))*dx*dy/(2*np.pi)**2
         fftV  = np.fft.fftshift(np.fft.fft2(Vaux))*dx*dy/(2*np.pi)**2
         fftUV = np.fft.fftshift(np.fft.fft2(UVaux))*dx*dy/(2*np.pi)**2
-        k1 = np.fft.fftshift((np.fft.fftfreq(m*2**K, d=dx/2/np.pi)))
-        k2 = np.fft.fftshift((np.fft.fftfreq(n*2**K, d=dy/2/np.pi))) 
-    return(k1,k2,np.abs(fftU),np.abs(fftV),fftUV)
+        k1 = np.fft.fftshift((np.fft.fftfreq(m, d=dx)))*2*np.pi
+        k2 = np.fft.fftshift((np.fft.fftfreq(n, d=dy)))*2*np.pi 
+        #phase shift
+        exp = np.meshgrid(np.arange(0, len(k1)), np.arange(0, len(k2))) 
+        shift = -(-1)**(exp[0])
+        fftU = fftU*shift
+        fftV = fftV*shift
+        fftUV = fftV*shift
+        shift = -(-1)**(exp[1])
+        fftU = fftU*shift
+        fftV = fftV*shift
+        fftUV = fftV*shift
+        
+        #fftU,fftV,fftUV = np.abs(np.real(fftU)),np.abs(fftV),fftUV
+        # fftU,fftV,fftUV = np.real(fftU),np.real(fftV),fftUV
+    return(k1,k2,fftU,fftV,fftUV)
 
 # In[Spectra smoothing]
 def spec_smooth(S,k1,k2,k1_bin_c,k2_bin_c,bins):
@@ -1113,7 +1139,7 @@ def upsample2 (x, k):
   return y.squeeze()   
 
 # In[Plots]
-def plot_log2D(k_int_grd, S, label_S = "$\log_{10}{S}$", C = 10**-4,fig_num='a',nl=10,minS = []):
+def plot_log2D(k_int_grd, S, label_S = "$\log_{10}{S}$", C = 10**-4,fig_num='a',nl=10,minS = None,S_lim = None):
     
     k_log_1 = np.sign(k_int_grd[0])*np.log10(1+np.abs(k_int_grd[0])/C)#np.log10(np.abs(k_int_grd[0]))   
     k_log_2 = np.sign(k_int_grd[1])*np.log10(1+np.abs(k_int_grd[1])/C)#np.log10(np.abs(k_int_grd[1]))
@@ -1121,14 +1147,15 @@ def plot_log2D(k_int_grd, S, label_S = "$\log_{10}{S}$", C = 10**-4,fig_num='a',
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
     ax.use_sticky_edges = False
-    S_lim = np.max(np.log10(S))
+    if S_lim == None:
+        S_lim = np.max(np.log10(S))
     if minS == None:
         minS = np.min(np.log10(S))
         
-    print(S_lim)
+    print(S_lim, minS, nl)
     im=ax.contourf(k_log_1,k_log_2,np.log10(S),np.linspace(minS,S_lim,nl),cmap='jet')
-    ax.set_xlabel('$k_1$', fontsize=18)
-    ax.set_ylabel('$k_2$', fontsize=18)
+    ax.set_xlabel('$k_1z_i$', fontsize=18)
+    ax.set_ylabel('$k_2z_i$', fontsize=18)
     
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)

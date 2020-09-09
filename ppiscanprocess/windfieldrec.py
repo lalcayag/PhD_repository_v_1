@@ -19,10 +19,13 @@ from sklearn.neighbors import KDTree
 from sklearn.neighbors import KNeighborsRegressor
 from matplotlib.tri import Triangulation,TriFinder,TriAnalyzer,CubicTriInterpolator
 
+import numba
+from numba import jit
+
 # In[############# [Functions] #################]
 
 # In[un-structured grid generation]
-
+@jit(nopython=True)
 def translationpolargrid(mgrid,h):  
     """
     Function that performs a linear translation from (r,theta) = (x,y) -> (x0,y0) = (x+h[0],y+h[1])
@@ -52,7 +55,6 @@ def translationpolargrid(mgrid,h):
     return(rho_prime, phi_prime)
 
 # In[Nearest point]
-
 def nearestpoint(mg0,mg1,dr,dp):
     """
     Function to identify the points inside the overlapping area of two PPI scans. A nearest neighbour
@@ -112,7 +114,6 @@ def nearestpoint(mg0,mg1,dr,dp):
     return nearest
 
 # In[Overlapping grid]
-
 def grid_over2(mg0, mg1, d):
     """
     Function to define coordinates (in a common frame) of the intersection of the laser-beams from
@@ -480,12 +481,12 @@ def dir_rec_rapid(V_a,V_b,a,b):
     Ca = np.cos(a)/np.sin(a-b)
     Cb = np.cos(b)/np.sin(a-b)
     U = -(Sb*V_a-Sa*V_b)
-    V = -(-Cb*V_a+Ca*V_b)
+    V = (Cb*V_a-Ca*V_b)
+#    V = -(-Cb*V_a+Ca*V_b)
     return (U,V)
 
-
 # In[]
-def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los = 'ws', scan = 'scan', N_grid = 512,interp = True):
+def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los = 'ws', scan = 'scan', N_grid = 512,interp = True,rot = True):
     """
     Function to reconstruct horizontal wind field (2D) in Cartesian coordinates.
     
@@ -517,9 +518,16 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
     U_out = []
     V_out = []
     scan_out = []
+    
+    if rot:
    
-    phi_0 = np.pi-np.radians(Lidar0.loc[Lidar0[scan]==min(scans0)][angle].unique())
-    phi_1 = np.pi-np.radians(Lidar1.loc[Lidar1[scan]==min(scans1)][angle].unique())
+        phi_0 = np.radians(90-Lidar0.loc[Lidar0[scan]==min(scans0)][angle].unique())
+        phi_1 = np.radians(90-Lidar1.loc[Lidar1[scan]==min(scans1)][angle].unique())
+        
+    else:
+
+        phi_0 = np.pi-np.radians(Lidar0.loc[Lidar0[scan]==min(scans0)][angle].unique())
+        phi_1 = np.pi-np.radians(Lidar1.loc[Lidar1[scan]==min(scans1)][angle].unique())
 
     r_0 = np.unique(Lidar0.loc[Lidar0[scan]==min(scans0)][r].values)
     r_1 = np.unique(Lidar1.loc[Lidar1[scan]==min(scans1)][r].values)
@@ -527,18 +535,22 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
     r_g_0, phi_g_0 = np.meshgrid(r_0,phi_0)
     r_g_1, phi_g_1 = np.meshgrid(r_1,phi_1)
     
+#    r_t_0, phi_t_0 = translationpolargrid((r_g_0, phi_g_0),d/2)
+#    r_t_1, phi_t_1 = translationpolargrid((r_g_1, phi_g_1),-d/2)
+
+    r_t_0, phi_t_0 = translationpolargrid((r_g_0, phi_g_0), d/2)
+    r_t_1, phi_t_1 = translationpolargrid((r_g_1, phi_g_1), -d/2)
     
-    r_t_0, phi_t_0 = translationpolargrid((r_g_0, phi_g_0),d/2)
-    r_t_1, phi_t_1 = translationpolargrid((r_g_1, phi_g_1),-d/2)
+    
     
 #   Area lim
-    area_lim = np.max(r_0)*np.max(np.diff(phi_0))*np.max(np.diff(r_0))
+    area_lim = np.abs(np.max(r_0)*np.max(np.diff(phi_0))*np.max(np.diff(r_0)))
 
     x0 = r_t_0*np.cos(phi_t_0)
     y0 = r_t_0*np.sin(phi_t_0)  
     x1 = r_t_1*np.cos(phi_t_1)
     y1 = r_t_1*np.sin(phi_t_1)
-
+    
     x = np.linspace(np.min(np.r_[x0.flatten(),x1.flatten()]),
                     np.max(np.r_[x0.flatten(),x1.flatten()]), N_grid)
     y = np.linspace(np.min(np.r_[y0.flatten(),y1.flatten()]),
@@ -560,7 +572,7 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
     n, m = grd[0].shape
     
     x_i = grd[0][~mask]
-    y_i = grd[1][~mask]
+    y_i = grd[1][~mask]   
     
     v_sq_0 = x_i*np.nan
     v_sq_1 = y_i*np.nan
@@ -570,8 +582,8 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
 
     r_i_0, phi_i_0 = translationpolargrid((r_i, phi_i),-d/2)
     r_i_1, phi_i_1 = translationpolargrid((r_i, phi_i), d/2)
-      
     
+    import matplotlib.pyplot as plt
     
     for scan_n0, scan_n1 in zip(scans0,scans1):
 
@@ -586,7 +598,6 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
         
         print(np.min([frac0,frac1]))
         
-        
         if np.min([frac0,frac1])>.5:
             U = np.zeros((n,m))
             V = np.zeros((n,m))       
@@ -600,6 +611,7 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
             y_1 = y1.flatten()[ind1]
                         
             trid1 = Delaunay(np.c_[x_1,y_1])
+                       
             areas1 = areatriangles(trid1, delaunay = True)
             
             maskt = circleratios(trid1)<.05
@@ -611,9 +623,11 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
             indtr1 = np.isin(trid1.find_simplex(np.c_[x_i,y_i]),triangle_ind1[~mask1])
             
             v_sq_1[indtr1] = sp.interpolate.griddata(np.c_[x_1,y_1],
-                  v_los_1.flatten()[ind1], (x_i[indtr1],y_i[indtr1]), method='cubic')            
-           
+                  v_los_1.flatten()[ind1], (x_i[indtr1],y_i[indtr1]), method='cubic')   
+            
             trid0 = Delaunay(np.c_[x_0,y_0])
+
+            
             areas0 = areatriangles(trid0, delaunay = True)
             
             maskt = circleratios(trid0)<.05
@@ -631,12 +645,12 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
     
             u,v = dir_rec_rapid(v_sq_1.flatten(),v_sq_0.flatten(), phi_i_1.flatten(),phi_i_0.flatten())
                 
-            #print(vel_s[:,0].shape,U[~mask,i].shape,v_sq_0.shape)
+
             U[~mask] = u#vel_s[:,0]
             
-#            plt.figure()
-#            plt.contourf(grd[0],grd[1],U,100,cmap='jet')
-#            plt.colorbar()
+            # plt.figure()
+            # plt.contourf(grd[0],grd[1],U,100,cmap='jet')
+            # plt.colorbar()
             
             V[~mask] = v#vel_s[:,1]      
             U_out.append(U)
@@ -645,7 +659,6 @@ def direct_wf_rec(Lidar0, Lidar1, tri, d, angle = 'azim', r = 'range_gate',v_los
     return (U_out,V_out,grd,scan_out)
 
 # In[]
-
 def areatriangles(tri, delaunay = False):
     """ integrate scattered data, given a triangulation
     zsum, areasum = sumtriangles( xy, z, triangles )
@@ -692,8 +705,7 @@ def areatriangles(tri, delaunay = False):
         #    areasum += area
     return area
 
-# In[]
-    
+# In[]  
 def circleratios(tri):
         """
         Returns a measure of the triangulation triangles flatness.

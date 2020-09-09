@@ -9,8 +9,8 @@ import os
 from subprocess import Popen, PIPE
 from os.path import isfile, join, getsize
 from os import listdir
-import tkinter as tkint
-import tkinter.filedialog
+# import tkinter as tkint
+# import tkinter.filedialog
 import matplotlib.pyplot as plt
 
 import ppiscanprocess.filtering as fl
@@ -30,16 +30,22 @@ matplotlib.rcParams['text.usetex'] = True
 matplotlib.rcParams['text.latex.unicode'] = True
 
   
-# In[]    
-root = tkint.Tk()
-file_in_path_0 = tkint.filedialog.askdirectory(parent=root,title='Choose an Input dir')
-root.destroy()
-root = tkint.Tk()
-file_in_path_1 = tkint.filedialog.askdirectory(parent=root,title='Choose an Input dir')
-root.destroy()
-root = tkint.Tk()
-file_out_path = tkint.filedialog.askdirectory(parent=root,title='Choose an Output dir')
-root.destroy()
+# In[paths]    
+# root = tkint.Tk()
+# file_in_path_0 = tkint.filedialog.askdirectory(parent=root,title='Choose an Input dir')
+# root.destroy()
+# root = tkint.Tk()
+# file_in_path_1 = tkint.filedialog.askdirectory(parent=root,title='Choose an Input dir')
+# root.destroy()
+# root = tkint.Tk()
+# file_out_path = tkint.filedialog.askdirectory(parent=root,title='Choose an Output dir')
+# root.destroy()
+
+
+file_in_path_0 = '/mnt/mimer/lalc/Data/phase_1/SiroccoEast'
+file_in_path_1 = '/mnt/mimer/lalc/Data/phase_1/VaraEast'
+file_out_path = '/mnt/mimer/lalc/db/scans/phase_1/east'
+
 
 # In[column labels]
 iden_lab = np.array(['start_id','stop_id','start_time','stop_time','azim','elev'])

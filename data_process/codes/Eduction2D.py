@@ -103,14 +103,14 @@ def edge_detec(img, sigma=2):
                 output[y, x] = 1
     return output
 
-def detect_peaks(image):
+def detect_peaks(image, x = 2, y = 2):
     """
     Takes an image and detect the peaks usingthe local maximum filter.
     Returns a boolean mask of the peaks (i.e. 1 when
     the pixel's value is the neighborhood maximum, 0 otherwise)
     """
     # define an 8-connected neighborhood
-    neighborhood = generate_binary_structure(2,2)
+    neighborhood = generate_binary_structure(x,y)
     #apply the local maximum filter; all pixel of maximal value 
     #in their neighborhood are set to 1
     local_max = maximum_filter(image, footprint=neighborhood)==image
@@ -377,11 +377,11 @@ file_in_path_1 = tkint.filedialog.askdirectory(parent=root,title='Choose an Inpu
 root.destroy()
 
 root = tkint.Tk()
-file_in_path_corr1 = tkint.filedialog.askdirectory(parent=root,title='Choose an corr dir')
+file_in_path_corr1 = tkint.filedialog.askdirectory(parent=root,title='Choose an corr 1 dir')
 root.destroy()
 
 root = tkint.Tk()
-file_in_path_corr2 = tkint.filedialog.askdirectory(parent=root,title='Choose an corr dir')
+file_in_path_corr2 = tkint.filedialog.askdirectory(parent=root,title='Choose an corr 2 dir')
 root.destroy()
 
 root = tkint.Tk()
@@ -637,11 +637,11 @@ U_out = [item for sublist in U_out for item in sublist]
 V_out = [item for sublist in V_out for item in sublist]
 su    = [item for sublist in su for item in sublist]
 
-filename = file_out_path_u_field+'/U_rec_'+dy+'.pkl'
-joblib.dump((U_out, V_out, grd, su), filename)  
-
-with open(file_out_path_u_field+'/U_rec_'+dy+'.pkl', 'wb') as field:
-      pickle.dump((U_out, V_out, grd, su),field)
+#filename = file_out_path_u_field+'/U_rec_'+dy+'.pkl'
+#joblib.dump((U_out, V_out, grd, su), filename)  
+#
+#with open(file_out_path_u_field+'/U_rec_'+dy+'.pkl', 'wb') as field:
+#      pickle.dump((U_out, V_out, grd, su),field)
 
 #### Vorticity
 

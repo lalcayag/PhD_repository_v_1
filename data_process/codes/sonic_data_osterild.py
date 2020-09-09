@@ -570,7 +570,7 @@ for i in range(len(t2)-1):
 dfL_phase1.time = aux1 
 dfL_phase2.time = aux2
 
-# In[]
+# In[Figures Torque]
 dfL_phase1[cols] = Lph1
 dfL_phase2[cols] = Lph2
 dfL_phase1.sort_values(by=['time'], inplace = True)
@@ -711,6 +711,8 @@ import matplotlib.ticker as tkr
 #rel2_1 = ((dfL_phase2_L.area_frac>.5*dfL_phase2_L.area_frac.max()) & (dfL_phase2_L['label']==clust2[1])) & dfL_phase2_L['rel']>.25
 
 colL = '$L_{flux,103}$'
+colU = '$U_{241}$'
+
 rel1_0 = (dfL_phase1_L['rel']>.25) & ((dfL_phase1_L[colL]>=0) & (dfL_phase1_L[colL]<500))
 rel1_1 = (dfL_phase1_L['rel']>.25) & ((dfL_phase1_L[colL]<=0) & (dfL_phase1_L[colL]>-500))
 rel1_2 = (dfL_phase1_L['rel']>.25) & (dfL_phase1_L[colL].abs()>500) #& (dfL_phase1_L['$U_{241}$'] > 15) #& (dfL_phase1_L['$u_{star,37}$'] < .75) 
@@ -740,7 +742,6 @@ g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 g.ax_joint.text(100, 1300,'(a)',fontsize=30,color='w')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_stable_phase_1.png')
-
 ######################################################################################
 g = sns.jointplot(x='$L_{u,x}$', y='$L_{u,y}$', data=dfL_phase1.loc[rel1_1], 
                         height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
@@ -760,7 +761,6 @@ g.ax_joint.text(100, 1300,'(a)',fontsize=30,color='w')
 g.ax_joint.scatter(Lux1,Luy1,s=500,marker='+')
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lu_y_neutral_phase_1.png')
-
 ######################################################################################
 g = sns.jointplot(x='$L_{u,x}$', y='$L_{v,y}$', data=dfL_phase1.loc[rel1_0], 
                         height = 8, kind="kde", cmap="jet", xlim = (0,xlim), ylim = (0,ylim),
@@ -785,7 +785,6 @@ g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
 g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_neutral_phase_1.png')
-
 #####################################################################################
 ######################################################################################
 # Phase 2
@@ -840,6 +839,92 @@ g.set_axis_labels('$L_{u_1,x_1}$', '$L_{u_2,x_2}$', fontsize = 24)
 g.ax_joint.plot([0,xlim],[0,ylim],'--w', linewidth = 2)
 plt.tight_layout()
 plt.savefig(file_out_figures+'/Lu_x_Lv_y_neutral_phase_2.png')
+
+# In[Correlations with wind speed]
+from mpl_toolkits.mplot3d import axes3d
+from sklearn.neighbors.kde import KernelDensity
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import RobustScaler
+import sklearn.linear_model
+
+colL = '$L_{flux,103}$'
+colU1 = '$U_{175}$'
+colU2 = '$U_{103}$'
+meanU1 = dfL_phase1_L[colU].mean()
+stdU1 = dfL_phase1_L[colU].std()
+meanU2 = dfL_phase2_L[colU].mean()
+stdU2 = dfL_phase2_L[colU].std()
+
+reli_1 = dfL_phase1_L['rel']>.25
+unstab_1 = (dfL_phase1_L[colL]<0) & (dfL_phase1_L[colL]>-500)
+neutral_1 = (dfL_phase1_L[colL].abs()>=500)# & (dfL_phase1_L[colL].abs()<5000)
+stab_1 = (dfL_phase1_L[colL]>=0) & (dfL_phase1_L[colL]<500)
+wind_1 = (dfL_phase1_L[colU]>=0)
+
+reli_2 = dfL_phase2_L['rel']>.25
+unstab_2 = (dfL_phase2_L[colL]<0) & (dfL_phase2_L[colL]>-500)
+neutral_2 = (dfL_phase2_L[colL].abs()>=500) & (dfL_phase2_L[colL].abs()<5000)
+stab_2 = (dfL_phase2_L[colL]>=0) & (dfL_phase2_L[colL]<500)
+wind_2 = (dfL_phase2_L[colU]>=0)
+
+fig = plt.figure(figsize=(10,6))
+ax = axes3d.Axes3D(fig)
+data = dfL_phase1.loc[reli_1]
+data_stab = data.loc[neutral_1]
+Lux1 = data_stab['$L_{u,x}$'].values
+Luy1 = data_stab['$L_{u,y}$'].values
+u1 = data_stab[colU2].abs().values
+l1 = 1/data_stab[colL].abs().values
+pos = np.c_[Lux1, Luy1,u1]
+transformer = RobustScaler().fit(pos)
+possc = transformer.transform(pos)
+params = {'bandwidth': np.logspace(-1, 3, 20)}
+grid = GridSearchCV(KernelDensity(), params)
+grid.fit(possc)
+print("best bandwidth: {0}".format(grid.best_estimator_.bandwidth))
+kernel = KernelDensity(kernel='gaussian', bandwidth=1).fit(possc)
+Z = kernel.score_samples(possc)
+Z = np.exp(Z)
+ax.scatter3D(Lux1, Luy1,u1, c=Z, cmap = 'jet')
+
+model = sklearn.linear_model.LinearRegression()
+model.fit(pos[:,:1], pos[:,1])
+u_pred = model.predict(pos[:,:1])
+
+ax.plot(pos[:,0],u_pred)
+
+fig, ax = plt.subplots(figsize=(10,6))
+#ax = axes3d.Axes3D(fig)
+data = dfL_phase2.loc[reli_2]
+data_stab = data.loc[unstab_2]
+Lux1 = data_stab['$L_{u,x}$'].values
+Luy1 = data_stab['$L_{u,y}$'].values
+u1 = data_stab[colU1].abs().values
+u2 = data_stab[colU2].abs().values
+l1 = 1/data_stab[colL].abs().values
+pos = np.c_[Lux1/Luy1, u1]
+transformer = RobustScaler().fit(pos)
+possc = pos#transformer.transform(pos)
+params = {'bandwidth': np.logspace(-1, 1, 20)}
+grid = GridSearchCV(KernelDensity(), params)
+grid.fit(possc)
+print("best bandwidth: {0}".format(grid.best_estimator_.bandwidth))
+kernel = KernelDensity(kernel='gaussian', bandwidth=grid.best_estimator_.bandwidth).fit(possc)
+Z = kernel.score_samples(possc)
+Z = np.exp(Z)
+ax.scatter(Lux1/Luy1, u1, c=Z, cmap = 'jet')
+model = sklearn.linear_model.LinearRegression()
+model.fit(pos[:,:1], pos[:,1])
+u_pred = model.predict(pos[:,:1])
+ax.plot(pos[:,0],u_pred)
+ax.set_xlabel(r'$L_{u,x}/L_{u,y}$', fontsize = 20)
+ax.set_ylabel(r'$U\:[m/s]$', fontsize = 20)
+
+# coefs = model.coef_
+# intercept = model.intercept_
+# xs, ys = np.meshgrid(np.arange(0,np.max(Lux1),100), np.arange(0,np.max(Luy1),100))
+# zs = intercept+xs*coefs[0]#+ys*coefs[1]
+# ax.plot_surface(xs,ys,zs, alpha=0.5)
 
 # In[Correlations]!!!!!!!!!!!!!!!!!!!!!
 
@@ -1094,27 +1179,6 @@ plt.plot(u_profile,z,'o', color='r')
 zt = np.linspace(z[0],z[-1],10)
 plt.plot(u_profile[0]*(zt/zref)**alpha,zt)
 plt.plot((us/.4)*np.log(zt/zf),zt)
-
-# In[]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # In[Clustering]
 from sklearn.neighbors import KDTree

@@ -150,6 +150,7 @@ df_sel_clust.ws=df_sel_vlos.ws.mask(mask)
 
 scan_n = 9020
 
+
 phi0 = df_sel.azim.unique()-90
 r0 = df_sel.iloc[0].range_gate.values
 r_0, phi_0 = np.meshgrid(r0, np.radians(phi0)) # meshgrid
@@ -268,20 +269,24 @@ ax.yaxis.pane.fill = False
 ax.zaxis.pane.fill = False
 ax.grid(False)
 
+
+fig = plt.figure()
+fig.set_size_inches(8,8)
+
 xx,yy,zz = np.meshgrid(np.array([-35,-21,0,35]),np.array([0,7000]),np.array([-40,0]))
 cub = (xx>=0) | (xx<-21)
 
-ax = fig.add_subplot(1,2,2,projection='3d')
-ax.scatter(pos3d[:,0], pos3d[:,1], pos3d[:,2], s=10, c= np.exp(Z),cmap = 'jet')
+ax = fig.add_subplot(1,1,1,projection='3d')
+ax.scatter(pos3d[:,0], pos3d[:,1], pos3d[:,2], s=10, c= np.exp(Z),cmap = 'bwr')
 ax.voxels(xx, yy, zz, cub[:-1,:-1,:-1], facecolors='grey', alpha=.1, edgecolor = 'k')
 ax.set_xlabel('$V_{LOS}$ m/s',fontsize=16) 
-ax.set_zlabel('CNR dB',fontsize=16)  
+ax.set_zlabel('$CNR\:dB$',fontsize=16)  
 ax.set_ylabel('Range gate m',fontsize=16)  
 ax.set_xlim([-35,35])
 ax.set_ylim([7000,0])
 ax.tick_params(axis='both', which='major', labelsize=14)
-ax.text(10, 10, 250, '(b)', transform=ax.transAxes, fontsize=24,
-        verticalalignment='top')
+# ax.text(10, 10, 250, '(b)', transform=ax.transAxes, fontsize=24,
+#         verticalalignment='top')
 ax.xaxis.pane.fill = False
 ax.yaxis.pane.fill = False
 ax.zaxis.pane.fill = False
@@ -362,40 +367,58 @@ root = tkint.Tk()
 file_out_path_df = tkint.filedialog.askdirectory(parent=root,title='Choose an Output dir DataFrame')
 root.destroy()
 
+file_out_path_df = 'D:/PhD/Python Code/results/results_synthetic/scans/df'
+
 with open(file_out_path_df+'/df0_noise.pkl', 'rb') as reader:
-    df_noise = pickle.load(reader)
+    dfnoise = pickle.load(reader)
 with open(file_out_path_df+'/df0_raw.pkl', 'rb') as reader:
-    df_raw = pickle.load(reader)
+    dfraw = pickle.load(reader)
 with open(file_out_path_df+'/df0_median.pkl', 'rb') as reader:
     df_median = pickle.load(reader)
 with open(file_out_path_df+'/df0_fil2.pkl', 'rb') as reader:
     df_fil = pickle.load(reader)
 
-ind_noise = (df_noise.ws-df_raw.ws) != 0
-noise_iden = (df_noise.ws.values-df_raw.ws.values) != 0
+scans = param[param[:,0]<280,-1]
+    
+df_noise = dfnoise.loc[dfnoise.scan.isin(scans)]
+df_raw = dfraw.loc[dfraw.scan.isin(scans)]    
 
-ws_raw_syn = df_raw.ws.values[~noise_iden]
-ws_noise_syn = df_noise.ws.values[noise_iden]
+ind_noise = (df_noise.ws-df_raw.ws).abs() >= 0.01
+noise_iden = np.abs(df_noise.ws.values-df_raw.ws.values) >= 0.01
+
+
+ws_raw_syn = df_raw.ws.values[(~noise_iden) & (np.abs(df_raw.ws.values)>.01)]
+ws_raw_syn = (ws_raw_syn-np.nanmean(ws_raw_syn))/np.std(ws_raw_syn)
+ws_noise_syn = df_noise.ws.values[(noise_iden) & (np.abs(df_raw.ws.values)>.01)]
+ws_noise_syn = (ws_noise_syn-np.nanmean(ws_noise_syn))/np.std(ws_noise_syn)
+
+indCNR = df1.CNR.values<-35
+ws_real = df1.ws.values[indCNR]
+ws_real = (ws_real-np.nanmean(ws_real))/np.std(ws_real)
+
 noise_syn = (df_noise.ws.values-df_raw.ws.values)[noise_iden]
+noise_syn = (noise_syn - np.nanmean(noise_syn))/np.nanstd(noise_syn)
 ws_median_syn = df_median.ws.values
 ws_clust_syn = df_fil.ws.values
 quantiles = np.quantile(ws_raw_syn.flatten(),q = [1-.997,.997])
 quantiles_noise = np.quantile(noise_syn.flatten(),q = [1-.997,.997])
 
 plt.figure()
-h_raw,bine_raw,_ = plt.hist(ws_raw_syn.flatten(),bins=50,alpha=0.5,density=True)
-h_noise_pure,bine_noise_pure,_ = plt.hist(noise_syn.flatten(),bins=50,alpha=0.5,density=True)
-h_noise,bine_noise,_ = plt.hist(ws_noise_syn.flatten(),bins=50,alpha=0.5,density=True)
+h_raw,bine_raw,_ = plt.hist(ws_raw_syn.flatten(),bins=100,alpha=0.5,density=True)
+h_noise_pure,bine_noise_pure,_ = plt.hist(noise_syn.flatten(),bins=100,alpha=0.5,density=True)
+h_noise,bine_noise,_ = plt.hist(ws_noise_syn.flatten(),bins=100,alpha=0.5,density=True)
+h_real,bine_real,_ = plt.hist(ws_real.flatten(),bins=100,alpha=0.5,density=True)
 plt.close()
 
 f=24
 fig, ax = plt.subplots(figsize = (8,8))
-ax.step(.5*(bine_raw[1:]+bine_raw[:-1]),h_raw, color='black', lw=3, label = r'$Contaminated$')
-ax.step(.5*(bine_noise[1:]+bine_noise[:-1]),h_noise, color='red', lw=3, label = r'$Non\:contaminated$')
+# ax.step(.5*(bine_raw[1:]+bine_raw[:-1]),h_raw, color='black', lw=3, label = r'$Contaminated$')
+ax.step(.5*(bine_noise[1:]+bine_noise[:-1]),h_noise, color='r', lw=3, label = r'$Non\:contaminated$')
+ax.step(.5*(bine_real[1:]+bine_real[:-1]),h_real, color='blue', lw=3, label = r'$Non\:contaminated$')
 ax.fill_between([-33,quantiles[0]], [0,0], [.1,.1], facecolor='grey', alpha=.2)
 ax.fill_between([quantiles[1],33], [0,0], [.1,.1], facecolor='grey', alpha=.2)
-ax.set_ylim(0,.1)
-ax.set_xlim(-33,33)
+# ax.set_ylim(0,.2)
+ax.set_xlim(-3,3)
 ax.set_xlabel('$V_{LOS}$',fontsize=f)
 ax.set_ylabel('$Probability\:density$',fontsize=f)
 #ax.legend(loc=(.4,.7),fontsize=f)
@@ -407,13 +430,14 @@ fig, ax = plt.subplots(figsize = (8,8))
 ax.step(.5*(bine_noise_pure[1:]+bine_noise_pure[:-1]),h_noise_pure, color='black', lw=3, label = r'$Noise$')
 ax.fill_between([-33,quantiles_noise[0]], [0,0], [.1,.1], facecolor='grey', alpha=.2)
 ax.fill_between([quantiles_noise[1],33], [0,0], [.1,.1], facecolor='grey', alpha=.2)
-ax.set_ylim(0,.07)
-ax.set_xlim(-33,33)
+# ax.set_ylim(0,.07)
+ax.set_xlim(-3,3)
 ax.set_xlabel('$\Delta V_{LOS, noise}$',fontsize=f)
 ax.set_ylabel('$Probability\:density$',fontsize=f)
 ax.tick_params(labelsize=f)
 ax.text(0.05, 0.95, '(a)', transform=ax.transAxes, fontsize=32, verticalalignment='top')
 fig.tight_layout()
+ax.plot(np.linspace(-3,3,100),np.exp(-.5*np.linspace(-3,3,100)**2)/(2*np.pi)**.5)
    
 # In[Data from a database]
 # Phase 1
@@ -432,6 +456,7 @@ root.destroy()
 root = tkint.Tk()
 file_in_path_figures = tkint.filedialog.askdirectory(parent=root,title='Choose an Input dir')
 root.destroy()
+
 # In[]
 iden_lab = np.array(['stop_time','azim'])
 labels = iden_lab
@@ -563,7 +588,7 @@ df_29 = []
 df_0 = []
 df_median1 = []
 
-# In[Revocery, statistics]
+# In[Recovery, statistics]
 den=False
 
 plt.figure()
@@ -1225,6 +1250,154 @@ for an in [-10,-15,-25,-30]:
     ax.add_artist(a_f)
 ################    
 ######################################################################################
+# In[White paper]
+import mysql.connector
+from sqlalchemy import create_engine
+file_name1 = 'D:/PhD/Python Code/Balcony/data_process/results/filtering/masks/Phase 1/west/raw_filt_1_phase1.db'
+csv_database_1_ind = create_engine('sqlite:///'+file_name1)
+
+
+
+iden_lab = np.array(['start_id','stop_id','start_time','stop_time','azim','elev'])
+labels = iden_lab
+labels_new = iden_lab
+#Labels for range gates and speed
+labels_mask = []
+labels_ws = []
+labels_rg = []
+labels_CNR = []
+labels_Sb = []
+for i in np.arange(198):
+    vel_lab = np.array(['range_gate_'+str(i),'ws_'+str(i),'CNR_'+str(i),'Sb_'+str(i)])
+    mask_lab = np.array(['ws_mask'+str(i)])
+    labels_new = np.concatenate((labels_new,vel_lab))
+    labels = np.concatenate((labels,np.array(['range_gate','ws','CNR','Sb'])))
+    labels_mask = np.concatenate((labels_mask,mask_lab))
+    labels_ws = np.concatenate((labels_ws,np.array(['ws_'+str(i)])))
+    labels_rg = np.concatenate((labels_rg,np.array(['range_gate_'+str(i)])))
+    labels_CNR = np.concatenate((labels_CNR,np.array(['CNR_'+str(i)])))
+    labels_Sb = np.concatenate((labels_Sb,np.array(['Sb_'+str(i)])))
+labels_new = np.concatenate((labels_new,np.array(['scan'])))    
+labels_short = np.array([ 'stop_time', 'azim'])
+for w,r in zip(labels_ws,labels_rg):
+    labels_short = np.concatenate((labels_short,np.array(['ws','range_gate', 'CNR', 'Sb'])))
+labels_short = np.concatenate((labels_short,np.array(['scan'])))   
+lim = [-8,-24]
+i=0
+col = 'SELECT '
+col_raw = 'SELECT '
+for w,r,c, s in zip(labels_ws,labels_rg,labels_CNR, labels_Sb):
+    if i == 0:
+        col = col + 'stop_time,' + ' azim, ' + w + ', ' + r + ', ' + c + ', ' + s + ', '
+        col_raw = col_raw  +  w  +  ', '
+    elif (i == len(labels_ws)-1):
+        col = col + ' ' + w + ', ' + r + ', ' + c + ', ' + s + ', scan'
+        col_raw = col_raw + ' ' + w
+    else:
+        col = col + ' ' + w + ', ' + r + ', ' + c + ', ' + s + ', ' 
+        col_raw = col_raw + ' ' + w + ', '
+    i+=1
+selec_fil = col + ' FROM "table_fil"'
+selec_raw = col + ' FROM "table_raw"'
+
+# query_fil_0 = selec_fil+ ' where name = ' + name_min 
+query_fil_1 = selec_fil+ ' where name = ' + '20160516'
+query_raw_1 = selec_raw+ ' where name = ' + '20160516'
+# First database loading
+# print('reading df0')
+# df_0 = pd.read_sql_query(query_fil_0, csv_database_0_ind)
+# df_0.columns = labels_short
+# Second database loading
+print('reading df1')
+df_1 = pd.read_sql_query(query_fil_1, csv_database_1_ind)
+df_1.columns = labels_short
+
+df1 = pd.read_sql_query(query_raw_1, csv_database_1_ind)
+df1.columns = labels_short
+
+
+f=20
+scan_n = 31337
+
+df_CNR = df1.loc[df1.scan==scan_n]
+mask_CNR = (df_CNR.CNR>-24)& (df_CNR.CNR<-8)
+mask_CNR.columns =  df_CNR.ws.columns
+df_CNR.ws=df_CNR.ws.mask(~mask_CNR, other=-24)
+
+phi0 = 90-df_1.azim.unique()
+r0 = df_1.iloc[0].range_gate.values
+r_0, phi_0 = np.meshgrid(r0, np.radians(phi0)) # meshgrid
+
+from copy import copy
+aux = df1.ws.loc[df1.scan==scan_n].values
+# aux = np.ma.masked_where((aux<-8.5)|(aux>3.8), aux)
+
+palette = copy(plt.cm.bwr)
+palette.set_over('k', 1.0)
+palette.set_under('k', 1.0)
+palette.set_bad('b', 1.0)
+
+fig, ax = plt.subplots(figsize=(8,8))
+ax.set_aspect('equal')
+ax.use_sticky_edges = False
+ax.margins(0.1)
+im = ax.contourf(r_0*np.cos(phi_0),r_0*np.sin(phi_0),aux,
+                 np.linspace(-8.5,3.8,20),
+                 norm=MidpointNormalize(midpoint=0,vmin = -8.508, vmax = 3.866),
+                 cmap=palette, extend="both")
+ax.set_xlabel('$Easting\:m$', fontsize=f)
+ax.set_ylabel('$Northing\:m$', fontsize=f)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.05)
+cbar = fig.colorbar(im, cax=cax, format=ticker.FuncFormatter(fm))
+cbar.ax.tick_params(labelsize=f)
+ax.tick_params(labelsize=14)
+cbar.ax.set_ylabel("$V_{LOS} m/s$", fontsize=f)
+ax.text(0.05, 0.95, '(a)', transform=ax.transAxes, fontsize=24,
+        verticalalignment='top')
+
+# fig, ax = plt.subplots(figsize=(8,8))
+# ax.set_aspect('equal')
+# ax.use_sticky_edges = False
+# ax.margins(0.1)
+# im = ax.contourf(r_0*np.cos(phi_0),r_0*np.sin(phi_0),df_CNR.ws.values,cmap='jet')
+# ax.set_xlabel('$Easting\:m$', fontsize=f)
+# ax.set_ylabel('$Northing\:m$', fontsize=f)
+# divider = make_axes_locatable(ax)
+# cax = divider.append_axes("right", size="5%", pad=0.05)
+# cbar = fig.colorbar(im, cax=cax, format=ticker.FuncFormatter(fm))
+# cbar.ax.tick_params(labelsize=f)
+# ax.tick_params(labelsize=14)
+# cbar.ax.set_ylabel("$V_{LOS} m/s$", fontsize=f)
+# ax.text(0.05, 0.95, '(a)', transform=ax.transAxes, fontsize=24,
+#         verticalalignment='top')
+
+
+fig, ax = plt.subplots(figsize=(8,8))
+ax.set_aspect('equal')
+ax.use_sticky_edges = False
+ax.margins(0.1)
+im = ax.contourf(r_0*np.cos(phi_0),r_0*np.sin(phi_0),df_1.ws.loc[df_1.scan==scan_n].values,
+                 np.linspace(-8.5,3.8,20),norm=MidpointNormalize(midpoint=0,vmin = -8.508, vmax = 3.866),
+                 cmap=palette)
+cs = ax.contour(r_0*np.cos(phi_0),r_0*np.sin(phi_0), df_CNR.ws.values, levels = [-24], colors = 'grey', linewidths = 4, linestyles = 'solid') 
+cs.levels=['$\mathbf{CNR=-24\:db}$']
+# ax.clabel(cs,cs.levels,inline=True,fontsize=f)
+ax.clabel(cs, inline=0, fontsize=20, colors = 'k', inline_spacing =5)
+ax.set_xlabel('$Easting\:m$', fontsize=f)
+ax.set_ylabel('$Northing\:m$', fontsize=f)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="5%", pad=0.05)
+cbar = fig.colorbar(im, cax=cax, format=ticker.FuncFormatter(fm))
+cbar.ax.tick_params(labelsize=f)
+ax.tick_params(labelsize=14)
+cbar.ax.set_ylabel("$V_{LOS} m/s$", fontsize=f)
+ax.text(0.05, 0.95, '(b)', transform=ax.transAxes, fontsize=24,
+        verticalalignment='top')
+
+
+
+
 
 # In[Old comb plot]
 #
